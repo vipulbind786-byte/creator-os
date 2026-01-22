@@ -62,26 +62,29 @@ export default function ProductSalesPage() {
         order_id: order.id,
 
         handler: async function (response: any) {
-          // 4️⃣ VERIFY PAYMENT
-          const verifyRes = await fetch("/api/payments/verify-payment", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              razorpay_order_id: response.razorpay_order_id,
-              razorpay_payment_id: response.razorpay_payment_id,
-              razorpay_signature: response.razorpay_signature,
-            }),
-          })
+  console.log("Payment response:", response)
 
-          const verifyData = await verifyRes.json()
+  const verifyRes = await fetch("/api/payments/verify", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      razorpay_order_id: response.razorpay_order_id,
+      razorpay_payment_id: response.razorpay_payment_id,
+      razorpay_signature: response.razorpay_signature,
+    }),
+  })
 
-          if (verifyData.success) {
-            alert("✅ Payment verified successfully")
-            // 👉 yaha success page / download / DB entry ayega later
-          } else {
-            alert("❌ Payment verification failed")
-          }
-        },
+  const verifyData = await verifyRes.json()
+
+  if (verifyData.success) {
+    alert("✅ Payment verified successfully")
+    // yaha future me redirect / DB save karega
+  } else {
+    alert("❌ Payment verification failed")
+  }
+},
 
         prefill: {
           name: "Test User",
