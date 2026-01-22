@@ -1,78 +1,113 @@
-import Link from "next/link"
-import { Button } from "@/components/ui/button"
+"use client"
 
-// Placeholder data - would be fetched based on [id] in real app
+import { Button } from "@/components/ui/button"
+import { useEffect, useState } from "react"
+
 const product = {
   id: "1",
   name: "Complete UI Kit",
-  description: "A comprehensive collection of 200+ professionally designed UI components. Perfect for building modern web applications, SaaS dashboards, and landing pages. Includes Figma files, React components, and detailed documentation.",
-  price: 49.00,
+  description:
+    "A comprehensive collection of 200+ professionally designed UI components.",
+  price: 500, // INR
   creator: "John Doe",
 }
 
 export default function ProductSalesPage() {
+  const [loading, setLoading] = useState(false)
+
+  // 🔍 TEMP DEBUG (auto runs on page load)
+  useEffect(() => {
+    console.log(
+      "DEBUG → Razorpay Key:",
+      process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID
+    )
+  }, [])
+
+  const handlePayment = async () => {
+    try {
+      setLoading(true)
+
+      // 1️⃣ Create order from backend
+      const res = await fetch("/api/payments/create-order", {
+        method: "POST",
+      })
+
+      const order = await res.json()
+
+      if (!order?.id) {
+        alert("Order create failed")
+        return
+      }
+
+      // 2️⃣ Load Razorpay script (safe way)
+      const scriptLoaded = document.querySelector(
+        'script[src="https://checkout.razorpay.com/v1/checkout.js"]'
+      )
+
+      if (!scriptLoaded) {
+        const razorpayScript = document.createElement("script")
+        razorpayScript.src = "https://checkout.razorpay.com/v1/checkout.js"
+        razorpayScript.async = true
+
+        razorpayScript.onload = () => openRazorpay(order)
+        document.body.appendChild(razorpayScript)
+      } else {
+        openRazorpay(order)
+      }
+    } catch (err) {
+      console.error("Payment Error:", err)
+      alert("Payment failed")
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const openRazorpay = (order: any) => {
+    const options = {
+      key: process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID,
+      amount: order.amount,
+      currency: "INR",
+      name: "Creator OS",
+      description: product.name,
+      order_id: order.id,
+      handler: function (response: any) {
+        console.log("Payment Success:", response)
+        alert("Payment successful 🎉")
+      },
+      prefill: {
+        name: "Test User",
+        email: "test@example.com",
+      },
+      theme: {
+        color: "#22c55e",
+      },
+    }
+
+    // @ts-ignore
+    const rzp = new window.Razorpay(options)
+    rzp.open()
+  }
+
   return (
-    <div className="min-h-screen bg-background">
-      {/* Header */}
-      <header className="border-b border-border">
-        <div className="mx-auto flex h-14 max-w-2xl items-center px-6">
-          <span className="text-sm text-muted-foreground">
-            Sold by{" "}
-            <span className="font-medium text-foreground">{product.creator}</span>
-          </span>
-        </div>
-      </header>
+    <div className="min-h-screen bg-background px-6 py-16">
+      <div className="mx-auto max-w-xl rounded-xl border p-8">
+        <h1 className="text-2xl font-bold">{product.name}</h1>
+        <p className="mt-3 text-muted-foreground">{product.description}</p>
 
-      {/* Product Content */}
-      <main className="px-6 py-12 lg:py-16">
-        <div className="mx-auto max-w-2xl">
-          <div className="rounded-xl bg-frosted-snow p-8 lg:p-10">
-            {/* Product Title */}
-            <h1 className="font-heading text-2xl font-bold text-card-foreground lg:text-3xl text-balance">
-              {product.name}
-            </h1>
+        <div className="mt-6 text-3xl font-semibold">₹{product.price}</div>
 
-            {/* Description */}
-            <p className="mt-4 text-card-foreground/80 leading-relaxed">
-              {product.description}
-            </p>
+        <Button
+          onClick={handlePayment}
+          disabled={loading}
+          className="mt-6 w-full text-lg"
+        >
+          {loading ? "Processing..." : "Buy Now"}
+        </Button>
 
-            {/* Price */}
-            <div className="mt-8 border-t border-border/20 pt-6">
-              <div className="flex items-baseline gap-2">
-                <span className="font-mono text-4xl font-medium text-evergreen">
-                  ${product.price.toFixed(2)}
-                </span>
-                <span className="text-sm text-muted-foreground">USD</span>
-              </div>
-            </div>
-
-            {/* Buy Button */}
-            <Link href="/payment/success" className="block mt-6">
-              <Button
-                size="lg"
-                className="w-full bg-evergreen text-lg text-primary-foreground hover:bg-evergreen/90"
-              >
-                Buy Now
-              </Button>
-            </Link>
-
-            {/* Trust Text */}
-            <p className="mt-4 text-center text-xs text-muted-foreground">
-              Secure payment processing
-            </p>
-          </div>
-        </div>
-      </main>
-
-      {/* Footer */}
-      <footer className="border-t border-border px-6 py-6">
-        <div className="mx-auto max-w-2xl">
-          <p className="text-center text-xs text-muted-foreground">
-            Powered by Creator OS
-          </p>
-        </div>
-      </footer>
+        <p className="mt-3 text-center text-xs text-muted-foreground">
+          Secure payment via Razorpay
+        </p>
+      </div>
     </div>
   )
 }
