@@ -3,6 +3,12 @@
 import { Button } from "@/components/ui/button"
 import { useState } from "react"
 
+declare global {
+  interface Window {
+    Razorpay: any
+  }
+}
+
 const product = {
   id: "1",
   name: "Complete UI Kit",
@@ -19,59 +25,61 @@ export default function ProductSalesPage() {
     try {
       setLoading(true)
 
+      // 1️⃣ Create order
       const res = await fetch("/api/payments/create-order", {
         method: "POST",
       })
 
       const order = await res.json()
+      console.log("ORDER =", order)
 
       if (!order?.id) {
         alert("Order create failed")
         return
       }
 
-      const RAZORPAY_KEY = process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID
+      // 2️⃣ Load Razorpay script
+      if (!window.Razorpay) {
+        const script = document.createElement("script")
+        script.src = "https://checkout.razorpay.com/v1/checkout.js"
+        script.async = true
 
-      if (!RAZORPAY_KEY) {
-        alert("Razorpay key missing")
-        return
+        script.onload = () => openRazorpay(order)
+        document.body.appendChild(script)
+      } else {
+        openRazorpay(order)
       }
-
-      const script = document.createElement("script")
-      script.src = "https://checkout.razorpay.com/v1/checkout.js"
-
-      script.onload = () => {
-        const options = {
-          key: RAZORPAY_KEY,
-          amount: order.amount,
-          currency: "INR",
-          name: "Creator OS",
-          description: product.name,
-          order_id: order.id,
-          handler: function () {
-            alert("Payment successful 🎉")
-          },
-          prefill: {
-            name: "Test User",
-            email: "test@example.com",
-          },
-          theme: {
-            color: "#22c55e",
-          },
-        }
-
-        // @ts-ignore
-        const rzp = new window.Razorpay(options)
-        rzp.open()
-      }
-
-      document.body.appendChild(script)
     } catch (err) {
       console.error(err)
       alert("Payment failed")
     } finally {
       setLoading(false)
     }
+  }
+
+  const openRazorpay = (order: any) => {
+    const options = {
+      key: process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID,
+      amount: order.amount,
+      currency: "INR",
+      name: "Creator OS",
+      description: product.name,
+      order_id: order.id,
+      handler: function (response: any) {
+        console.log("PAYMENT SUCCESS =", response)
+        alert("Payment successful 🎉")
+      },
+      prefill: {
+        name: "Test User",
+        email: "test@example.com",
+      },
+      theme: {
+        color: "#22c55e",
+      },
+    }
+
+    const rzp = new window.Razorpay(options)
+    rzp.open()
   }
 
   return (
