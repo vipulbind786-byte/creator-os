@@ -1,86 +1,32 @@
 "use client"
 
 import { Button } from "@/components/ui/button"
-import { useEffect, useState } from "react"
+import { useState } from "react"
 
-const product = {
-  id: "1",
-  name: "Complete UI Kit",
-  description:
-    "A comprehensive collection of 200+ professionally designed UI components.",
-  price: 500, // INR
-  creator: "John Doe",
-}
+const RAZORPAY_KEY = process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID
 
 export default function ProductSalesPage() {
   const [loading, setLoading] = useState(false)
 
-  // 🔍 TEMP DEBUG (auto runs on page load)
-  useEffect(() => {
-    console.log(
-      "DEBUG → Razorpay Key:",
-      process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID
-    )
-  }, [])
-
   const handlePayment = async () => {
-    try {
-      setLoading(true)
-
-      // 1️⃣ Create order from backend
-      const res = await fetch("/api/payments/create-order", {
-        method: "POST",
-      })
-
-      const order = await res.json()
-
-      if (!order?.id) {
-        alert("Order create failed")
-        return
-      }
-
-      // 2️⃣ Load Razorpay script (safe way)
-      const scriptLoaded = document.querySelector(
-        'script[src="https://checkout.razorpay.com/v1/checkout.js"]'
-      )
-
-      if (!scriptLoaded) {
-        const razorpayScript = document.createElement("script")
-        razorpayScript.src = "https://checkout.razorpay.com/v1/checkout.js"
-        razorpayScript.async = true
-
-        razorpayScript.onload = () => openRazorpay(order)
-        document.body.appendChild(razorpayScript)
-      } else {
-        openRazorpay(order)
-      }
-    } catch (err) {
-      console.error("Payment Error:", err)
-      alert("Payment failed")
-    } finally {
-      setLoading(false)
+    if (!RAZORPAY_KEY) {
+      alert("Razorpay key missing")
+      return
     }
-  }
 
-  const openRazorpay = (order: any) => {
+    const res = await fetch("/api/payments/create-order", {
+      method: "POST",
+    })
+
+    const order = await res.json()
+
     const options = {
-      key: process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID,
+      key: RAZORPAY_KEY,
       amount: order.amount,
       currency: "INR",
       name: "Creator OS",
-      description: product.name,
       order_id: order.id,
-      handler: function (response: any) {
-        console.log("Payment Success:", response)
-        alert("Payment successful 🎉")
-      },
-      prefill: {
-        name: "Test User",
-        email: "test@example.com",
-      },
-      theme: {
-        color: "#22c55e",
-      },
+      handler: () => alert("Payment success 🎉"),
     }
 
     // @ts-ignore
@@ -89,25 +35,10 @@ export default function ProductSalesPage() {
   }
 
   return (
-    <div className="min-h-screen bg-background px-6 py-16">
-      <div className="mx-auto max-w-xl rounded-xl border p-8">
-        <h1 className="text-2xl font-bold">{product.name}</h1>
-        <p className="mt-3 text-muted-foreground">{product.description}</p>
-
-        <div className="mt-6 text-3xl font-semibold">₹{product.price}</div>
-
-        <Button
-          onClick={handlePayment}
-          disabled={loading}
-          className="mt-6 w-full text-lg"
-        >
-          {loading ? "Processing..." : "Buy Now"}
-        </Button>
-
-        <p className="mt-3 text-center text-xs text-muted-foreground">
-          Secure payment via Razorpay
-        </p>
-      </div>
+    <div className="p-10">
+      <Button onClick={handlePayment}>
+        Buy Now
+      </Button>
     </div>
   )
 }
