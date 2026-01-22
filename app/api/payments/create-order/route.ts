@@ -1,7 +1,7 @@
 import Razorpay from "razorpay"
 import { NextResponse } from "next/server"
 
-export const dynamic = "force-dynamic"
+export const runtime = "nodejs" // 🔥 VERY IMPORTANT
 
 export async function POST() {
   try {
@@ -9,6 +9,7 @@ export async function POST() {
     const key_secret = process.env.RAZORPAY_KEY_SECRET
 
     if (!key_id || !key_secret) {
+      console.error("ENV MISSING", { key_id, key_secret })
       return NextResponse.json(
         { error: "Razorpay env missing" },
         { status: 500 }
@@ -23,12 +24,12 @@ export async function POST() {
     const order = await razorpay.orders.create({
       amount: 50000, // 500 INR in paise
       currency: "INR",
-      receipt: "receipt_" + Date.now(),
+      receipt: "rcpt_" + Date.now(),
     })
 
     return NextResponse.json(order)
   } catch (err: any) {
-    console.error("RAZORPAY ERROR:", err)
+    console.error("RAZORPAY SERVER ERROR:", err)
     return NextResponse.json(
       { error: "Failed to create order" },
       { status: 500 }
