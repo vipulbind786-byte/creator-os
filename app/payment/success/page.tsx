@@ -1,35 +1,37 @@
-import Link from "next/link"
+"use client"
+
 import { Button } from "@/components/ui/button"
 import { CheckCircle2 } from "lucide-react"
 
 export default function PaymentSuccessPage() {
   return (
-    <div className="flex min-h-screen items-center justify-center bg-background px-4">
-      <div className="w-full max-w-sm text-center">
-        <div className="rounded-xl bg-frosted-snow p-8">
-          {/* Success Icon */}
-          <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-evergreen/10">
-            <CheckCircle2 className="h-8 w-8 text-evergreen" />
-          </div>
+    <div className="min-h-screen flex items-center justify-center bg-background px-6">
+      <div className="w-full max-w-md rounded-xl border p-8 text-center">
+        <CheckCircle2 className="mx-auto h-16 w-16 text-green-500" />
 
-          {/* Message */}
-          <h1 className="mt-6 font-heading text-2xl font-bold text-card-foreground">
-            Payment Successful
-          </h1>
-          <p className="mt-2 text-sm text-muted-foreground">
-            {"You'll receive access shortly."}
+        <h1 className="mt-4 text-2xl font-bold">
+          Payment Successful 🎉
+        </h1>
+
+        <p className="mt-2 text-muted-foreground">
+          Thank you for your purchase. Your payment has been verified successfully.
+        </p>
+
+        <div className="mt-6 rounded-lg bg-muted p-4 text-sm">
+          <p>
+            ✅ Order confirmed
           </p>
-
-          {/* Action */}
-          <Link href="/" className="mt-8 block">
-            <Button
-              variant="outline"
-              className="w-full border-border text-card-foreground hover:bg-card/50 bg-transparent"
-            >
-              Go back
-            </Button>
-          </Link>
+          <p className="mt-1">
+            📩 Access details will be sent to your email
+          </p>
         </div>
+
+        <Button
+          className="mt-6 w-full"
+          onClick={() => (window.location.href = "/")}
+        >
+          Go to Home
+        </Button>
       </div>
     </div>
   )

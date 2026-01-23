@@ -12,8 +12,9 @@ declare global {
 const product = {
   id: "1",
   name: "Complete UI Kit",
-  description: "A comprehensive collection of 200+ professionally designed UI components.",
-  price: 500, // INR
+  description:
+    "A comprehensive collection of 200+ professionally designed UI components.",
+  price: 500,
   creator: "John Doe",
 }
 
@@ -24,7 +25,6 @@ export default function ProductSalesPage() {
     try {
       setLoading(true)
 
-      // 1️⃣ Create order
       const res = await fetch("/api/payments/create-order", {
         method: "POST",
       })
@@ -37,10 +37,7 @@ export default function ProductSalesPage() {
         return
       }
 
-      // 2️⃣ Load Razorpay script (safe way)
-      const scriptLoaded = document.querySelector("#razorpay-script")
-
-      if (!scriptLoaded) {
+      if (!document.getElementById("razorpay-script")) {
         const script = document.createElement("script")
         script.id = "razorpay-script"
         script.src = "https://checkout.razorpay.com/v1/checkout.js"
@@ -52,7 +49,6 @@ export default function ProductSalesPage() {
         })
       }
 
-      // 3️⃣ Open Razorpay checkout
       const rzp = new window.Razorpay({
         key: process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID,
         amount: order.amount,
@@ -62,29 +58,34 @@ export default function ProductSalesPage() {
         order_id: order.id,
 
         handler: async function (response: any) {
-  console.log("Payment response:", response)
+          const verifyRes = await fetch("/api/payments/verify", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+              razorpay_order_id: response.razorpay_order_id,
+              razorpay_payment_id: response.razorpay_payment_id,
+              razorpay_signature: response.razorpay_signature,
+            }),
+          })
 
-  const verifyRes = await fetch("/api/payments/verify", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({
-      razorpay_order_id: response.razorpay_order_id,
-      razorpay_payment_id: response.razorpay_payment_id,
-      razorpay_signature: response.razorpay_signature,
-    }),
-  })
+          const verifyData = await verifyRes.json()
 
-  const verifyData = await verifyRes.json()
+          if (verifyData.success) {
+            alert("✅ Payment Successful & Verified")
+            window.location.href = "/payment/success"
+          } else {
+            alert("❌ Payment verification failed")
+            window.location.href = "/payment/failed"
+          }
+        },
 
-  if (verifyData.success) {
-    alert("✅ Payment verified successfully")
-    // yaha future me redirect / DB save karega
-  } else {
-    alert("❌ Payment verification failed")
-  }
-},
+        modal: {
+          ondismiss: function () {
+            window.location.href = "/payment/failed"
+          },
+        },
 
         prefill: {
           name: "Test User",

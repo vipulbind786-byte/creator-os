@@ -1,34 +1,43 @@
-import Link from "next/link"
+"use client"
+
 import { Button } from "@/components/ui/button"
 import { XCircle } from "lucide-react"
 
 export default function PaymentFailedPage() {
   return (
-    <div className="flex min-h-screen items-center justify-center bg-background px-4">
-      <div className="w-full max-w-sm text-center">
-        <div className="rounded-xl bg-frosted-snow p-8">
-          {/* Failed Icon */}
-          <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-destructive/10">
-            <XCircle className="h-8 w-8 text-destructive-foreground" />
-          </div>
+    <div className="min-h-screen flex items-center justify-center bg-background px-6">
+      <div className="w-full max-w-md rounded-xl border p-8 text-center">
+        <XCircle className="mx-auto h-16 w-16 text-red-500" />
 
-          {/* Message */}
-          <h1 className="mt-6 font-heading text-2xl font-bold text-card-foreground">
-            Payment Failed
-          </h1>
-          <p className="mt-2 text-sm text-muted-foreground">
-            Something went wrong with your payment.
-          </p>
+        <h1 className="mt-4 text-2xl font-bold">
+          Payment Failed ❌
+        </h1>
 
-          {/* Action */}
-          <Link href="/product/1" className="mt-8 block">
-            <Button
-              className="w-full bg-evergreen text-primary-foreground hover:bg-evergreen/90"
-            >
-              Try Again
-            </Button>
-          </Link>
+        <p className="mt-2 text-muted-foreground">
+          Your payment could not be completed. No money has been deducted.
+        </p>
+
+        <div className="mt-6 rounded-lg bg-muted p-4 text-sm">
+          <p>⚠️ Possible reasons:</p>
+          <p className="mt-1">• Bank / UPI declined</p>
+          <p>• Test mode limitation</p>
+          <p>• Network issue</p>
         </div>
+
+        <Button
+          className="mt-6 w-full"
+          onClick={() => (window.location.href = "/product/demo")}
+        >
+          Try Again
+        </Button>
+
+        <Button
+          variant="outline"
+          className="mt-3 w-full"
+          onClick={() => (window.location.href = "/")}
+        >
+          Go to Home
+        </Button>
       </div>
     </div>
   )
