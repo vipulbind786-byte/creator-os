@@ -1,7 +1,6 @@
-"use client"
-
 import { Button } from "@/components/ui/button"
 import { CheckCircle2 } from "lucide-react"
+import Link from "next/link"
 
 export default function PaymentSuccessPage() {
   return (
@@ -26,11 +25,8 @@ export default function PaymentSuccessPage() {
           </p>
         </div>
 
-        <Button
-          className="mt-6 w-full"
-          onClick={() => (window.location.href = "/")}
-        >
-          Go to Home
+        <Button asChild className="mt-6 w-full">
+          <Link href="/">Go to Home</Link>
         </Button>
       </div>
     </div>

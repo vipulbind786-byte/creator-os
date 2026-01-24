@@ -1,11 +1,12 @@
 import { createClient } from "@supabase/supabase-js";
+import { validateSupabaseClientEnv } from "./env";
 
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
-const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
+// Validate environment variables before creating client
+const { url, anonKey } = validateSupabaseClientEnv();
 
 export const supabase = createClient(
-  supabaseUrl,
-  supabaseAnonKey,
+  url,
+  anonKey,
   {
     auth: {
       persistSession: true,

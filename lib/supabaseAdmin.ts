@@ -1,10 +1,11 @@
 import { createClient } from "@supabase/supabase-js";
+import { validateSupabaseAdminEnv } from "./env";
 
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
-const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
+// Validate environment variables before creating admin client
+const { url, serviceRoleKey } = validateSupabaseAdminEnv();
 
 export const supabaseAdmin = createClient(
-  supabaseUrl,
+  url,
   serviceRoleKey,
   {
     auth: {

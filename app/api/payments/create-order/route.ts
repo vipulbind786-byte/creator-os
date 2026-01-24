@@ -1,25 +1,18 @@
 import Razorpay from "razorpay"
 import { NextResponse } from "next/server"
+import { validateRazorpayEnv } from "@/lib/env"
 
 export const runtime = "nodejs"   // 🔴 VERY IMPORTANT
 export const dynamic = "force-dynamic"
 
 export async function POST() {
   try {
-    const key_id = process.env.RAZORPAY_KEY_ID
-    const key_secret = process.env.RAZORPAY_KEY_SECRET
-
-    if (!key_id || !key_secret) {
-      console.error("❌ Razorpay env missing")
-      return NextResponse.json(
-        { error: "Razorpay keys missing" },
-        { status: 500 }
-      )
-    }
+    // Validate environment variables
+    const { keyId, keySecret } = validateRazorpayEnv()
 
     const razorpay = new Razorpay({
-      key_id,
-      key_secret,
+      key_id: keyId,
+      key_secret: keySecret,
     })
 
     const order = await razorpay.orders.create({
