@@ -3,16 +3,29 @@ import type { NextRequest } from "next/server";
 import { createServerClient } from "@supabase/ssr";
 
 export async function middleware(req: NextRequest) {
-  // Only protect /admin routes
-  if (!req.nextUrl.pathname.startsWith("/admin")) {
+  const { pathname } = req.nextUrl;
+
+  // 🔓 Only protect admin routes
+  if (!pathname.startsWith("/admin")) {
     return NextResponse.next();
   }
 
+  // ❗ Env safety (production hardening)
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+
+  if (!supabaseUrl || !supabaseAnonKey) {
+    console.error("❌ Supabase env missing in middleware");
+    return NextResponse.redirect(new URL("/login", req.url));
+  }
+
+  // ✅ Create response instance ONCE
   const res = NextResponse.next();
 
+  // 🔐 Supabase server client (edge-safe)
   const supabase = createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    supabaseUrl,
+    supabaseAnonKey,
     {
       cookies: {
         get(name) {
@@ -28,29 +41,29 @@ export async function middleware(req: NextRequest) {
     }
   );
 
-  // 🔐 Get logged-in user
+  // 🔐 Auth check
   const {
     data: { user },
+    error: authError,
   } = await supabase.auth.getUser();
 
-  // ❌ Not logged in
-  if (!user) {
+  if (authError || !user) {
     return NextResponse.redirect(new URL("/login", req.url));
   }
 
-  // 🔍 Check admin flag
-  const { data: profile } = await supabase
+  // 🔍 Admin role check
+  const { data: profile, error: profileError } = await supabase
     .from("profiles")
     .select("is_admin")
     .eq("id", user.id)
-    .single();
+    .maybeSingle();
 
-  // ❌ Not admin
-  if (!profile?.is_admin) {
-    return new NextResponse("Forbidden", { status: 403 });
+  if (profileError || !profile?.is_admin) {
+    // ❌ Never expose raw 403 text
+    return NextResponse.redirect(new URL("/", req.url));
   }
 
-  // ✅ Admin allowed
+  // ✅ Admin verified
   return res;
 }
 
