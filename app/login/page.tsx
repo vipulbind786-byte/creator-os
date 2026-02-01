@@ -1,20 +1,62 @@
-import Link from "next/link"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
+"use client";
+
+import { useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
+import Link from "next/link";
+
+import { supabaseBrowser } from "@/lib/supabaseBrowser";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 
 export default function LoginPage() {
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const redirectTo = searchParams.get("redirect") || "/admin";
+
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const handleLogin = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoading(true);
+    setError(null);
+
+    const { error } = await supabaseBrowser.auth.signInWithPassword({
+      email,
+      password,
+    });
+
+    if (error) {
+      setError(error.message);
+      setLoading(false);
+      return;
+    }
+
+    /**
+     * ✅ IMPORTANT
+     * Cookie-based session is now written automatically
+     * Middleware + Server Components can read it
+     */
+    router.replace(redirectTo);
+  };
+
   return (
     <div className="flex min-h-screen items-center justify-center bg-background px-4">
       <div className="w-full max-w-sm">
         {/* Logo */}
         <div className="mb-8 text-center">
-          <Link href="/" className="font-heading text-2xl font-bold text-foreground">
+          <Link
+            href="/"
+            className="font-heading text-2xl font-bold text-foreground"
+          >
             Creator OS
           </Link>
         </div>
 
-        {/* Login Form */}
+        {/* Login Card */}
         <div className="rounded-xl bg-frosted-snow p-8">
           <h1 className="font-heading text-xl font-semibold text-card-foreground">
             Welcome back
@@ -23,47 +65,57 @@ export default function LoginPage() {
             Sign in to your account
           </p>
 
-          <form className="mt-6 space-y-4">
+          <form onSubmit={handleLogin} className="mt-6 space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="email" className="text-card-foreground">
-                Email
-              </Label>
+              <Label htmlFor="email">Email</Label>
               <Input
                 id="email"
                 type="email"
                 placeholder="you@example.com"
-                className="border-border bg-background text-foreground placeholder:text-muted-foreground"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                required
               />
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="password" className="text-card-foreground">
-                Password
-              </Label>
+              <Label htmlFor="password">Password</Label>
               <Input
                 id="password"
                 type="password"
                 placeholder="Enter your password"
-                className="border-border bg-background text-foreground placeholder:text-muted-foreground"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                required
               />
             </div>
 
+            {error && (
+              <p className="text-sm text-red-500">
+                {error}
+              </p>
+            )}
+
             <Button
               type="submit"
+              disabled={loading}
               className="w-full bg-evergreen text-primary-foreground hover:bg-evergreen/90"
             >
-              Login
+              {loading ? "Signing in..." : "Login"}
             </Button>
           </form>
 
           <p className="mt-6 text-center text-sm text-muted-foreground">
-            {"Don't have an account? "}
-            <Link href="/signup" className="font-medium text-evergreen hover:underline">
+            Don&apos;t have an account?{" "}
+            <Link
+              href="/signup"
+              className="font-medium text-evergreen hover:underline"
+            >
               Sign up
             </Link>
           </p>
         </div>
       </div>
     </div>
-  )
+  );
 }

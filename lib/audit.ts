@@ -1,43 +1,68 @@
+// lib/audit.ts
+
 import { supabaseAdmin } from "@/lib/supabaseAdmin";
 
-type AuditActorType = "system" | "user" | "admin";
+/* ======================================================
+   TYPES
+====================================================== */
 
-interface AuditLogInput {
-  event_type: string;
-  entity_type: string;
-  entity_id?: string | null;
+export type AuditActorType =
+  | "system"
+  | "user"
+  | "admin"
+  | "webhook";
 
+export interface AuditLogInput {
+  event_type: string;        // e.g. "payment.captured"
+  entity_type: string;       // e.g. "order", "subscription"
+  entity_id: string;         // UUID or provider ID
   actor_type: AuditActorType;
-  actor_id?: string | null;
-
-  context?: Record<string, any>;
+  actor_id?: string | null;  // optional (system/webhook = null)
+  context?: Record<string, any>; // non-sensitive metadata only
 }
 
+/* ======================================================
+   WRITE AUDIT LOG (BEST-EFFORT)
+====================================================== */
+
 /**
- * writeAuditLog
- * -------------------------
- * Centralized, append-only audit logger
+ * 🔐 writeAuditLog
  *
- * RULES:
- * - Server only
- * - No PII
- * - No raw payloads
- * - Never throw (logging must not break business logic)
+ * - NEVER throws
+ * - NEVER blocks business logic
+ * - Used for payments, refunds, subscriptions
+ * - Legal / compliance / debugging trail
  */
-export async function writeAuditLog(input: AuditLogInput) {
+export async function writeAuditLog(
+  input: AuditLogInput
+): Promise<void> {
   try {
+    const {
+      event_type,
+      entity_type,
+      entity_id,
+      actor_type,
+      actor_id = null,
+      context = {},
+    } = input;
+
+    // Hard guard — audit should never poison runtime
+    if (!event_type || !entity_type || !entity_id || !actor_type) {
+      console.warn("⚠️ AUDIT SKIPPED — invalid payload", input);
+      return;
+    }
+
     await supabaseAdmin.from("audit_logs").insert({
-      event_type: input.event_type,
-      entity_type: input.entity_type,
-      entity_id: input.entity_id ?? null,
-
-      actor_type: input.actor_type,
-      actor_id: input.actor_id ?? null,
-
-      context: input.context ?? {},
+      event_type,
+      entity_type,
+      entity_id,
+      actor_type,
+      actor_id,
+      context,
+      created_at: new Date().toISOString(),
     });
   } catch (err) {
-    // ❌ Never throw — audit failure must NOT break core flow
-    console.error("⚠️ AUDIT LOG FAILED:", err);
+    // 🔥 ABSOLUTE RULE: audit failure must NEVER crash app
+    console.error("🔥 AUDIT LOG FAILED:", err);
   }
 }

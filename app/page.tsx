@@ -1,6 +1,7 @@
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { Package, Link2, DollarSign } from "lucide-react"
+import LocaleSwitcher from "@/components/i18n/LocaleSwitcher.client"
 
 export default function LandingPage() {
   return (
@@ -10,6 +11,7 @@ export default function LandingPage() {
         <div className="mx-auto flex h-16 max-w-6xl items-center justify-between px-6">
           <span className="font-heading text-xl font-bold text-foreground">Creator OS</span>
           <nav className="flex items-center gap-4">
+            <LocaleSwitcher />
             <Link href="/login">
               <Button variant="ghost" className="text-foreground">
                 Login
@@ -34,7 +36,7 @@ export default function LandingPage() {
             Creator OS helps you launch products and collect payments in minutes.
           </p>
           <div className="mt-10 flex flex-col items-center justify-center gap-4 sm:flex-row">
-            <Link href="/signup">
+            <Link href="/dashboard">
               <Button size="lg" className="w-full bg-evergreen text-primary-foreground hover:bg-evergreen/90 sm:w-auto">
                 Start Selling
               </Button>

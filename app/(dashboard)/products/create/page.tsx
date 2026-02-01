@@ -1,92 +1,114 @@
+"use client"
+
 import Link from "next/link"
+import { useState } from "react"
+import { useRouter } from "next/navigation"
+import { ArrowLeft } from "lucide-react"
+
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
-import { ArrowLeft } from "lucide-react"
+import { toast } from "sonner"
 
 export default function CreateProductPage() {
+  const router = useRouter()
+
+  const [name, setName] = useState("")
+  const [price, setPrice] = useState("")
+  const [description, setDescription] = useState("")
+  const [loading, setLoading] = useState(false)
+
+  async function handleSubmit(e: React.FormEvent) {
+    e.preventDefault()
+    if (loading) return // 🚫 HARD DOUBLE-CLICK BLOCK
+
+    setLoading(true)
+
+    try {
+      const res = await fetch("/api/products/create", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name: name.trim(),
+          price: Number(price),
+          description: description.trim(),
+        }),
+      })
+
+      const data = await res.json()
+
+      if (!res.ok) {
+        throw new Error(data?.error || "Create failed")
+      }
+
+      toast.success("Product created")
+
+      router.push("/products")
+      router.refresh()
+    } catch (err: any) {
+      toast.error(err.message || "Something went wrong")
+      setLoading(false)
+    }
+  }
+
   return (
-    <div className="space-y-8">
-      {/* Header */}
-      <div>
-        <Link 
-          href="/products" 
-          className="inline-flex items-center text-sm text-muted-foreground hover:text-foreground"
-        >
-          <ArrowLeft className="mr-1.5 h-4 w-4" />
-          Back to products
-        </Link>
-        <h1 className="mt-4 font-heading text-2xl font-bold text-foreground lg:text-3xl">
-          Create Product
-        </h1>
-        <p className="mt-1 text-sm text-muted-foreground">
-          Add a new digital product to sell
-        </p>
-      </div>
+    <div className="space-y-8 max-w-xl">
+      <Link
+        href="/products"
+        className="inline-flex items-center text-sm text-muted-foreground"
+      >
+        <ArrowLeft className="mr-1.5 h-4 w-4" />
+        Back to products
+      </Link>
 
-      {/* Form */}
-      <div className="max-w-xl">
-        <div className="rounded-xl bg-frosted-snow p-6 lg:p-8">
-          <form className="space-y-6">
-            <div className="space-y-2">
-              <Label htmlFor="name" className="text-card-foreground">
-                Product name
-              </Label>
-              <Input
-                id="name"
-                type="text"
-                placeholder="e.g. Complete UI Kit"
-                className="border-border bg-background text-foreground placeholder:text-muted-foreground"
-              />
-              <p className="text-xs text-muted-foreground">
-                This will be displayed on your sales page
-              </p>
-            </div>
+      <h1 className="text-2xl font-bold">Create Product</h1>
 
-            <div className="space-y-2">
-              <Label htmlFor="price" className="text-card-foreground">
-                Price
-              </Label>
-              <div className="relative">
-                <span className="absolute left-3 top-1/2 -translate-y-1/2 font-mono text-muted-foreground">
-                  $
-                </span>
-                <Input
-                  id="price"
-                  type="number"
-                  step="0.01"
-                  min="0"
-                  placeholder="0.00"
-                  className="border-border bg-background pl-7 font-mono text-foreground placeholder:text-muted-foreground"
-                />
-              </div>
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="description" className="text-card-foreground">
-                Short description
-              </Label>
-              <Textarea
-                id="description"
-                placeholder="Describe what buyers will get..."
-                rows={4}
-                className="border-border bg-background text-foreground placeholder:text-muted-foreground resize-none"
-              />
-              <p className="text-xs text-muted-foreground">
-                Keep it brief and compelling
-              </p>
-            </div>
-
-            <Button
-              type="submit"
-              className="w-full bg-evergreen text-primary-foreground hover:bg-evergreen/90"
-            >
-              Create Product
-            </Button>
-          </form>
+      <form
+        onSubmit={handleSubmit}
+        className="space-y-6 rounded-xl bg-frosted-snow p-6"
+      >
+        <div className="space-y-2">
+          <Label>Product name</Label>
+          <Input
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            required
+            disabled={loading}
+          />
         </div>
-      </div>
+
+        <div className="space-y-2">
+          <Label>Price (INR)</Label>
+          <Input
+            type="number"
+            min="0"
+            step="1"
+            value={price}
+            onChange={(e) => setPrice(e.target.value)}
+            required
+            disabled={loading}
+          />
+        </div>
+
+        <div className="space-y-2">
+          <Label>Description</Label>
+          <Textarea
+            rows={4}
+            value={description}
+            onChange={(e) => setDescription(e.target.value)}
+            disabled={loading}
+          />
+        </div>
+
+        <Button
+          type="submit"
+          disabled={loading}
+          className="w-full"
+        >
+          {loading ? "Creating…" : "Create Product"}
+        </Button>
+      </form>
     </div>
   )
 }

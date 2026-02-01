@@ -5,9 +5,11 @@ import React from "react"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { cn } from "@/lib/utils"
-import { LayoutDashboard, Package, ShoppingCart, Settings, LogOut, Menu, X } from "lucide-react"
+import { LayoutDashboard, Package, ShoppingCart, Settings, Menu, X } from "lucide-react"
 import { useState } from "react"
 import { Button } from "@/components/ui/button"
+import { LogoutButton } from "@/components/auth/LogoutButton"
+import LocaleSwitcher from "@/components/i18n/LocaleSwitcher.client"
 
 const navItems = [
   { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
@@ -26,10 +28,11 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       <aside className="fixed left-0 top-0 z-40 hidden h-screen w-64 border-r border-border bg-sidebar lg:block">
         <div className="flex h-full flex-col">
           {/* Logo */}
-          <div className="flex h-16 items-center border-b border-sidebar-border px-6">
+          <div className="flex h-16 items-center justify-between border-b border-sidebar-border px-6">
             <Link href="/dashboard" className="font-heading text-xl font-bold text-sidebar-foreground">
               Creator OS
             </Link>
+            <LocaleSwitcher />
           </div>
 
           {/* Navigation */}
@@ -64,10 +67,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                 <p className="text-sm font-medium text-sidebar-foreground">John Doe</p>
                 <p className="text-xs text-muted-foreground">Creator</p>
               </div>
-              <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-sidebar-foreground">
-                <LogOut className="h-4 w-4" />
-                <span className="sr-only">Logout</span>
-              </Button>
+              <LogoutButton />
             </div>
           </div>
         </div>
@@ -78,15 +78,18 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         <Link href="/dashboard" className="font-heading text-lg font-bold text-foreground">
           Creator OS
         </Link>
-        <Button
-          variant="ghost"
-          size="icon"
-          onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-          className="text-foreground"
-        >
-          {mobileMenuOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
-          <span className="sr-only">Toggle menu</span>
-        </Button>
+        <div className="flex items-center gap-2">
+          <LocaleSwitcher />
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+            className="text-foreground"
+          >
+            {mobileMenuOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
+            <span className="sr-only">Toggle menu</span>
+          </Button>
+        </div>
       </header>
 
       {/* Mobile Menu Overlay */}
@@ -124,10 +127,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                   <p className="text-sm font-medium text-sidebar-foreground">John Doe</p>
                   <p className="text-xs text-muted-foreground">Creator</p>
                 </div>
-                <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-sidebar-foreground">
-                  <LogOut className="h-4 w-4" />
-                  <span className="sr-only">Logout</span>
-                </Button>
+                <LogoutButton />
               </div>
             </div>
           </div>

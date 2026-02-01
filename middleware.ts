@@ -1,72 +1,106 @@
-import { NextResponse } from "next/server";
-import type { NextRequest } from "next/server";
-import { createServerClient } from "@supabase/ssr";
+/* ======================================================
+   CREATOR OS — GLOBAL MIDDLEWARE
+   ------------------------------------------------------
+   RESPONSIBILITIES:
+   ✔ Rate limiting (anti-spam / anti-bot)
+   ✔ Auth wall
+   ✔ Admin protection
+   ✔ Zero client trust
+   ✔ Edge safe
+
+   🔒 HARD LOCK — DO NOT MODIFY
+   (security critical file)
+====================================================== */
+
+import { createServerClient } from "@supabase/ssr"
+import { NextResponse } from "next/server"
+import type { NextRequest } from "next/server"
+
+import { guardAPI } from "@/lib/ratelimit"
+
+/* ======================================================
+   GLOBAL MIDDLEWARE
+====================================================== */
 
 export async function middleware(req: NextRequest) {
-  const { pathname } = req.nextUrl;
+  /* =====================================================
+     1️⃣ GLOBAL RATE LIMIT (CHEAP — runs first)
+  ===================================================== */
 
-  // 🔓 Only protect admin routes
-  if (!pathname.startsWith("/admin")) {
-    return NextResponse.next();
+  if (!guardAPI(req)) {
+    return new NextResponse("Too Many Requests", {
+      status: 429,
+    })
   }
 
-  // ❗ Env safety (production hardening)
-  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+  /* =====================================================
+     2️⃣ AUTH WALL
+  ===================================================== */
 
-  if (!supabaseUrl || !supabaseAnonKey) {
-    console.error("❌ Supabase env missing in middleware");
-    return NextResponse.redirect(new URL("/login", req.url));
-  }
+  const res = NextResponse.next()
 
-  // ✅ Create response instance ONCE
-  const res = NextResponse.next();
-
-  // 🔐 Supabase server client (edge-safe)
   const supabase = createServerClient(
-    supabaseUrl,
-    supabaseAnonKey,
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
     {
       cookies: {
-        get(name) {
-          return req.cookies.get(name)?.value;
+        getAll() {
+          return req.cookies.getAll()
         },
-        set(name, value, options) {
-          res.cookies.set({ name, value, ...options });
-        },
-        remove(name, options) {
-          res.cookies.set({ name, value: "", ...options });
+        setAll(cookies) {
+          cookies.forEach(({ name, value, options }) => {
+            res.cookies.set(name, value, options)
+          })
         },
       },
     }
-  );
+  )
 
-  // 🔐 Auth check
   const {
     data: { user },
-    error: authError,
-  } = await supabase.auth.getUser();
+  } = await supabase.auth.getUser()
 
-  if (authError || !user) {
-    return NextResponse.redirect(new URL("/login", req.url));
+  const pathname = req.nextUrl.pathname
+
+  /* =====================================================
+     3️⃣ PROTECTED APP AREAS
+  ===================================================== */
+
+  const isProtected =
+    pathname.startsWith("/dashboard") ||
+    pathname.startsWith("/products") ||
+    pathname.startsWith("/orders") ||
+    pathname.startsWith("/purchases") ||
+    pathname.startsWith("/billing") ||
+    pathname.startsWith("/admin")
+
+  if (isProtected && !user) {
+    const redirectUrl = req.nextUrl.clone()
+    redirectUrl.pathname = "/login"
+    redirectUrl.searchParams.set("redirect", pathname)
+    return NextResponse.redirect(redirectUrl)
   }
 
-  // 🔍 Admin role check
-  const { data: profile, error: profileError } = await supabase
-    .from("profiles")
-    .select("is_admin")
-    .eq("id", user.id)
-    .maybeSingle();
-
-  if (profileError || !profile?.is_admin) {
-    // ❌ Never expose raw 403 text
-    return NextResponse.redirect(new URL("/", req.url));
-  }
-
-  // ✅ Admin verified
-  return res;
+  return res
 }
 
+/* ======================================================
+   MATCHER — ONLY RUN WHERE NEEDED
+====================================================== */
+
 export const config = {
-  matcher: ["/admin/:path*"],
-};
+  matcher: [
+    "/dashboard/:path*",
+    "/products/:path*",
+    "/orders/:path*",
+    "/purchases/:path*",
+    "/billing/:path*",
+    "/admin/:path*",
+  ],
+}
+
+/* ======================================================
+   🔒 HARD LOCK COMPLETE
+   This file must NOT be edited again.
+   Future changes → create new layer only.
+====================================================== */

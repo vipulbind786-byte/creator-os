@@ -1,86 +1,163 @@
+"use client"
+
+import { useState } from "react"
+import { useRouter } from "next/navigation"
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
-import { Plus, ExternalLink } from "lucide-react"
+import { Badge } from "@/components/ui/badge"
+import { toast } from "sonner"
 
-// Placeholder data
-const products = [
-  { id: "1", name: "Complete UI Kit", price: 49.00, status: "Active" },
-  { id: "2", name: "Icon Pack Pro", price: 29.00, status: "Active" },
-  { id: "3", name: "Landing Page Templates", price: 79.00, status: "Active" },
-  { id: "4", name: "Design System Guide", price: 39.00, status: "Active" },
-]
+type Product = {
+  id: string
+  name: string
+  price: number
+  status: "draft" | "scheduled" | "active" | "paused" | "archived"
+  publish_at: string | null
+}
 
-export default function ProductsPage() {
+/* 🔥 HARD FIX: products default = [] */
+export default function ProductsPage({
+  products = [],
+}: {
+  products?: Product[]
+}) {
+  const router = useRouter()
+  const [busyId, setBusyId] = useState<string | null>(null)
+
+  async function onDelete(productId: string) {
+    if (busyId) return
+    const ok = confirm("Delete this product? This can be undone later.")
+    if (!ok) return
+
+    setBusyId(productId)
+
+    try {
+      const res = await fetch("/api/products/delete", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ productId }),
+      })
+
+      const data = await res.json()
+      if (!res.ok) throw new Error(data?.error || "Delete failed")
+
+      toast.success("Product archived")
+      router.refresh()
+    } catch (e: any) {
+      toast.error(e.message || "Delete failed")
+    } finally {
+      setBusyId(null)
+    }
+  }
+
+  async function onSchedule(productId: string) {
+    if (busyId) return
+    const input = prompt("Publish date & time (YYYY-MM-DD HH:mm)")
+    if (!input) return
+
+    const iso = new Date(input).toISOString()
+
+    setBusyId(productId)
+
+    try {
+      const res = await fetch("/api/products/schedule", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ productId, publishAt: iso }),
+      })
+
+      const data = await res.json()
+      if (!res.ok) throw new Error(data?.error || "Schedule failed")
+
+      toast.success("Product scheduled")
+      router.refresh()
+    } catch (e: any) {
+      toast.error(e.message || "Schedule failed")
+    } finally {
+      setBusyId(null)
+    }
+  }
+
+  function statusBadge(status: Product["status"]) {
+    switch (status) {
+      case "active":
+        return <Badge>Active</Badge>
+      case "scheduled":
+        return <Badge variant="outline">Scheduled</Badge>
+      case "archived":
+        return <Badge variant="secondary">Archived</Badge>
+      default:
+        return <Badge variant="secondary">Draft</Badge>
+    }
+  }
+
   return (
-    <div className="space-y-8">
-      {/* Header */}
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <h1 className="font-heading text-2xl font-bold text-foreground lg:text-3xl">
-            Products
-          </h1>
-          <p className="mt-1 text-sm text-muted-foreground">
-            Manage your digital products
-          </p>
-        </div>
+    <div className="space-y-6">
+      <div className="flex items-center justify-between">
+        <h1 className="text-2xl font-bold">Products</h1>
+
         <Link href="/products/create">
-          <Button className="bg-evergreen text-primary-foreground hover:bg-evergreen/90">
-            <Plus className="mr-2 h-4 w-4" />
-            Create Product
-          </Button>
+          <Button>Create Product</Button>
         </Link>
       </div>
 
-      {/* Products Table */}
-      <div className="rounded-xl bg-frosted-snow">
-        <div className="overflow-x-auto">
-          <table className="w-full">
-            <thead>
-              <tr className="border-b border-border/20">
-                <th className="px-6 py-4 text-left text-sm font-medium text-muted-foreground">
-                  Product
-                </th>
-                <th className="px-6 py-4 text-left text-sm font-medium text-muted-foreground">
-                  Price
-                </th>
-                <th className="px-6 py-4 text-left text-sm font-medium text-muted-foreground">
-                  Status
-                </th>
-                <th className="px-6 py-4 text-right text-sm font-medium text-muted-foreground">
-                  Action
-                </th>
-              </tr>
-            </thead>
-            <tbody>
-              {products.map((product) => (
-                <tr key={product.id} className="border-b border-border/10 last:border-0">
-                  <td className="px-6 py-4">
-                    <span className="font-medium text-card-foreground">{product.name}</span>
-                  </td>
-                  <td className="px-6 py-4">
-                    <span className="font-mono text-card-foreground">
-                      ${product.price.toFixed(2)}
+      {/* 🔥 SAFE: always array now */}
+      {products.length === 0 ? (
+        <p className="text-sm text-muted-foreground">No products yet.</p>
+      ) : (
+        <div className="space-y-3">
+          {products.map((p) => (
+            <div
+              key={p.id}
+              className="flex items-center justify-between rounded-lg border p-4"
+            >
+              <div className="space-y-1">
+                <div className="font-medium">{p.name}</div>
+
+                <div className="flex items-center gap-2">
+                  {statusBadge(p.status)}
+
+                  {p.publish_at && (
+                    <span className="text-xs text-muted-foreground">
+                      Publishes {new Date(p.publish_at).toLocaleString()}
                     </span>
-                  </td>
-                  <td className="px-6 py-4">
-                    <span className="inline-flex items-center rounded-full bg-evergreen/10 px-2.5 py-0.5 text-xs font-medium text-evergreen">
-                      {product.status}
-                    </span>
-                  </td>
-                  <td className="px-6 py-4 text-right">
-                    <Link href={`/product/${product.id}`}>
-                      <Button variant="ghost" size="sm" className="text-card-foreground hover:text-evergreen">
-                        <ExternalLink className="mr-1.5 h-4 w-4" />
-                        View Sales Page
+                  )}
+                </div>
+              </div>
+
+              <div className="flex items-center gap-2">
+                {p.status !== "archived" && (
+                  <>
+                    <Link href={`/product/${p.id}`}>
+                      <Button size="sm" variant="outline" disabled={busyId === p.id}>
+                        Edit
                       </Button>
                     </Link>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => onSchedule(p.id)}
+                      disabled={busyId === p.id}
+                    >
+                      Schedule
+                    </Button>
+
+                    <Button
+                      size="sm"
+                      variant="destructive"
+                      onClick={() => onDelete(p.id)}
+                      disabled={busyId === p.id}
+                    >
+                      Delete
+                    </Button>
+                  </>
+                )}
+              </div>
+            </div>
+          ))}
         </div>
-      </div>
+      )}
     </div>
   )
 }

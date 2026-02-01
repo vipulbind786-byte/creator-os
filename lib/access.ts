@@ -1,29 +1,21 @@
 // lib/access.ts
+// 🔒 OP-12: ACCESS WRAPPER — FINAL, HARD LOCK
+// ❌ NO LOGIC HERE
+// ❌ NO DB QUERIES HERE
+// ❌ DO NOT MODIFY
+// CORE AUTHORITY = lib/entitlement.ts
 
-import { supabaseAdmin } from "@/lib/supabaseAdmin";
+import { hasActiveEntitlement } from "@/lib/entitlement"
 
 /**
- * 🔐 Check if user has active entitlement for a product
- * SINGLE source of truth for access
+ * 🔐 ACCESS CHECK (SERVER-SIDE ONLY)
+ *
+ * This is a THIN WRAPPER for backward compatibility.
+ * All rules live in hasActiveEntitlement().
  */
 export async function hasProductAccess(
-  userId: string,
-  productId: string
+  userId: string | null | undefined,
+  productId: string | null | undefined
 ): Promise<boolean> {
-  if (!userId || !productId) return false;
-
-  const { data, error } = await supabaseAdmin
-    .from("entitlements")
-    .select("id")
-    .eq("user_id", userId)
-    .eq("product_id", productId)
-    .eq("status", "active")
-    .maybeSingle();
-
-  if (error) {
-    console.error("ACCESS CHECK ERROR:", error);
-    return false;
-  }
-
-  return !!data;
+  return hasActiveEntitlement(userId, productId)
 }
